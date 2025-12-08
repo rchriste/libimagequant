@@ -189,20 +189,16 @@ fn vp_search_node(node: &Node, needle: &f_pixel, best_candidate: &mut Visitor) {
 
     match node.inner {
         NodeInner::Nodes { radius, radius_squared, ref near, ref far } => {
-            // Recurse towards most likely candidate first to narrow best candidate's distance as soon as possible
-            if distance_squared < radius_squared {
-                vp_search_node(near, needle, best_candidate);
-                // The best node (final answer) may be just outside the radius, but not farther than
-                // the best distance we know so far. The vp_search_node above should have narrowed
-                // best_candidate->distance, so this path is rarely taken.
-                if distance >= radius - best_candidate.distance {
-                    vp_search_node(far, needle, best_candidate);
-                }
-            } else {
-                vp_search_node(far, needle, best_candidate);
-                if distance <= radius + best_candidate.distance {
-                    vp_search_node(near, needle, best_candidate);
-                }
+            // Recurse towards most likely candidate first to narrow best_candidate.distance quickly.
+            let go_near_first = distance_squared < radius_squared;
+            let (first, second) = if go_near_first { (near, far) } else { (far, near) };
+
+            vp_search_node(first, needle, best_candidate);
+
+            // Only search the other side if the hypersphere intersects the best distance found so far.
+            let within_band = (distance - radius).abs() <= best_candidate.distance;
+            if within_band {
+                vp_search_node(second, needle, best_candidate);
             }
         },
         NodeInner::Leaf { len: num, ref idxs, ref colors } => {
