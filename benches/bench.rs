@@ -3,12 +3,28 @@
 extern crate test;
 use core::mem::MaybeUninit;
 use test::Bencher;
+use std::env;
+use std::path::PathBuf;
 
 use imagequant::*;
 
+fn load_bench_image() -> lodepng::Bitmap<lodepng::RGBA> {
+    let raw = env::var("BENCH_IMAGE").expect("Set BENCH_IMAGE to a PNG path for benchmarks");
+    let resolved: PathBuf = if let Some(stripped) = raw.strip_prefix("~/") {
+        let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
+        PathBuf::from(home).join(stripped)
+    } else if raw == "~" {
+        PathBuf::from(env::var("HOME").unwrap_or_else(|_| ".".to_string()))
+    } else {
+        PathBuf::from(raw)
+    };
+    lodepng::decode32_file(resolved)
+        .unwrap_or_else(|e| panic!("Failed to load BENCH_IMAGE PNG: {e}"))
+}
+
 #[bench]
 fn histogram(b: &mut Bencher) {
-    let img = lodepng::decode32_file("/Users/kornel/Desktop/canvas.png").unwrap();
+    let img = load_bench_image();
     let liq = Attributes::new();
     b.iter(move || {
         let mut img = liq.new_image(&*img.buffer, img.width, img.height, 0.).unwrap();
@@ -19,7 +35,7 @@ fn histogram(b: &mut Bencher) {
 
 #[bench]
 fn remap_ord(b: &mut Bencher) {
-    let img = lodepng::decode32_file("/Users/kornel/Desktop/canvas.png").unwrap();
+    let img = load_bench_image();
     let mut buf = vec![MaybeUninit::uninit(); img.width * img.height];
     let mut liq = Attributes::new();
     liq.set_speed(10).unwrap();
@@ -40,7 +56,7 @@ fn kmeans(b: &mut Bencher) {
 
 #[bench]
 fn remap_floyd(b: &mut Bencher) {
-    let img = lodepng::decode32_file("/Users/kornel/Desktop/canvas.png").unwrap();
+    let img = load_bench_image();
     let mut buf = vec![MaybeUninit::uninit(); img.width * img.height];
     let mut liq = Attributes::new();
     liq.set_speed(10).unwrap();
@@ -55,7 +71,7 @@ fn remap_floyd(b: &mut Bencher) {
 
 #[bench]
 fn quantize_s8(b: &mut Bencher) {
-    let img = lodepng::decode32_file("/Users/kornel/Desktop/canvas.png").unwrap();
+    let img = load_bench_image();
     let mut liq = Attributes::new();
     liq.set_speed(8).unwrap();
     b.iter(move || {
@@ -66,7 +82,7 @@ fn quantize_s8(b: &mut Bencher) {
 
 #[bench]
 fn quantize_s1(b: &mut Bencher) {
-    let img = lodepng::decode32_file("/Users/kornel/Desktop/canvas.png").unwrap();
+    let img = load_bench_image();
     let mut liq = Attributes::new();
     liq.set_speed(1).unwrap();
     b.iter(move || {
