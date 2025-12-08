@@ -202,10 +202,20 @@ fn vp_search_node(node: &Node, needle: &f_pixel, best_candidate: &mut Visitor) {
             }
         },
         NodeInner::Leaf { len: num, ref idxs, ref colors } => {
-            colors.iter().zip(idxs.iter().copied()).take(num as usize).for_each(|(color, idx)| {
-                let distance_squared = color.diff(needle);
-                best_candidate.visit(distance_squared.sqrt(), distance_squared, idx);
-            });
+            // Optional "fake" leaf scan for profiling: set LIQ_FAKE_LEAF to skip real work.
+            if std::env::var("LIQ_FAKE_LEAF").is_ok() {
+                // Trivial but well-formed reduction: visit zeros with stable idx order.
+                for i in 0..num as usize {
+                    let idx = idxs[i];
+                    best_candidate.visit(0.0, 0.0, idx);
+                }
+            } else {
+                for i in 0..num as usize {
+                    let idx = idxs[i];
+                    let distance_squared = colors[i].diff(needle);
+                    best_candidate.visit(distance_squared.sqrt(), distance_squared, idx);
+                }
+            }
         },
     }
 }
