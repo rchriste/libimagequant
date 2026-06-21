@@ -432,5 +432,4 @@ impl Hash for HashColor {
 }
 
 impl Eq for HashColor {
-    fn assert_receiver_is_total_eq(&self) {}
 }
