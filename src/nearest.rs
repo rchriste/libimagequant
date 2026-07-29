@@ -181,11 +181,12 @@ fn vp_create_node(indexes: &mut [MapIndex], items: &PalF) -> Node {
 }
 
 #[inline(never)]
-fn vp_search_node(node: &Node, needle: &f_pixel, best_candidate: &mut Visitor) {
-    let distance_squared = node.vantage_point.diff(needle);
-    let distance = distance_squared.sqrt();
+fn vp_search_node(mut node: &Node, needle: &f_pixel, best_candidate: &mut Visitor) {
+    loop {
+        let distance_squared = node.vantage_point.diff(needle);
+        let distance = distance_squared.sqrt();
 
-    best_candidate.visit(distance, distance_squared, node.idx);
+        best_candidate.visit(distance, distance_squared, node.idx);
 
     match node.inner {
         NodeInner::Nodes { radius, radius_squared, ref near, ref far } => {
