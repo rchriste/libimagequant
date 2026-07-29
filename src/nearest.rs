@@ -188,29 +188,34 @@ fn vp_search_node(mut node: &Node, needle: &f_pixel, best_candidate: &mut Visito
 
         best_candidate.visit(distance, distance_squared, node.idx);
 
-    match node.inner {
-        NodeInner::Nodes { radius, radius_squared, ref near, ref far } => {
-            // Recurse towards most likely candidate first to narrow best candidate's distance as soon as possible
-            if distance_squared < radius_squared {
-                vp_search_node(near, needle, best_candidate);
-                // The best node (final answer) may be just outside the radius, but not farther than
-                // the best distance we know so far. The vp_search_node above should have narrowed
-                // best_candidate->distance, so this path is rarely taken.
-                if distance >= radius - best_candidate.distance {
-                    vp_search_node(far, needle, best_candidate);
-                }
-            } else {
-                vp_search_node(far, needle, best_candidate);
-                if distance <= radius + best_candidate.distance {
+        match node.inner {
+            NodeInner::Nodes { radius, radius_squared, ref near, ref far } => {
+                // Recurse towards most likely candidate first to narrow best candidate's distance as soon as possible
+                if distance_squared < radius_squared {
                     vp_search_node(near, needle, best_candidate);
+                    // The best node (final answer) may be just ouside the radius, but not farther than
+                    // the best distance we know so far. The vp_search_node above should have narrowed
+                    // best_candidate->distance, so this path is rarely taken.
+                    if distance >= radius - best_candidate.distance {
+                        node = far;
+                        continue;
+                    }
+                } else {
+                    vp_search_node(far, needle, best_candidate);
+                    if distance <= radius + best_candidate.distance {
+                        node = near;
+                        continue;
+                    }
                 }
-            }
-        },
-        NodeInner::Leaf { len: num, ref idxs, ref colors } => {
-            colors.iter().zip(idxs.iter().copied()).take(num as usize).for_each(|(color, idx)| {
-                let distance_squared = color.diff(needle);
-                best_candidate.visit(distance_squared.sqrt(), distance_squared, idx);
-            });
-        },
+                break;
+            },
+            NodeInner::Leaf { len: num, ref idxs, ref colors } => {
+                colors.iter().zip(idxs.iter().copied()).take(num as usize).for_each(|(color, idx)| {
+                    let distance_squared = color.diff(needle);
+                    best_candidate.visit(distance_squared.sqrt(), distance_squared, idx);
+                });
+                break;
+            },
+        }
     }
 }
