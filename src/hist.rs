@@ -51,23 +51,24 @@ pub(crate) struct HistItem {
     pub color: f_pixel,
     pub adjusted_weight: f32,
     pub perceptual_weight: f32,
-    /// temporary in median cut
     pub mc_color_weight: f32,
-    pub tmp: HistSortTmp,
+    /// Reused: mc_sort_value during median cut, then likely_palette_index after
+    pub sort_val_pal_index_union: u32,
 }
 
 impl HistItem {
-    // Safety: just an int, and it's been initialized when constructing the object
     #[inline(always)]
     pub fn mc_sort_value(&self) -> u32 {
-        unsafe { self.tmp.mc_sort_value }
+        self.sort_val_pal_index_union
     }
 
-    // The u32 has been initialized when constructing the object, and u8/u16 is smaller than that
     #[inline(always)]
     pub fn likely_palette_index(&self) -> PalIndex {
-        assert!(mem::size_of::<PalIndex>() <= mem::size_of::<u32>());
-        unsafe { self.tmp.likely_palette_index }
+        self.sort_val_pal_index_union as PalIndex
+    }
+
+    pub(crate) fn set_likely_palette_index(&mut self, index: PalIndex) {
+        self.sort_val_pal_index_union = index as u32;
     }
 }
 
@@ -81,13 +82,6 @@ impl fmt::Debug for HistItem {
             .field("color_weight", &self.mc_color_weight)
             .finish()
     }
-}
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub union HistSortTmp {
-    pub mc_sort_value: u32,
-    pub likely_palette_index: PalIndex,
 }
 
 impl Histogram {
@@ -323,7 +317,7 @@ impl Histogram {
             adjusted_weight: if cfg!(debug_assertions) { f32::NAN } else { 0. },
             perceptual_weight: if cfg!(debug_assertions) { f32::NAN } else { 0. },
             mc_color_weight: if cfg!(debug_assertions) { f32::NAN } else { 0. },
-            tmp: HistSortTmp { mc_sort_value: if cfg!(debug_assertions) { !0 } else { 0 } },
+            sort_val_pal_index_union: if cfg!(debug_assertions) { !0 } else { 0 },
         });
         let mut items = items.into_boxed_slice();
 
@@ -438,5 +432,4 @@ impl Hash for HashColor {
 }
 
 impl Eq for HashColor {
-    fn assert_receiver_is_total_eq(&self) {}
 }

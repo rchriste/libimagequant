@@ -225,11 +225,23 @@ impl Attributes {
         self.log_callback = Some(Arc::new(callback));
     }
 
+    /// Drop callback from `set_log_callback`
+    pub fn clear_log_callback(&mut self) {
+        self.log_callback = None;
+    }
+
     /// Callback for flushing output (if you buffer messages, that's the time to flush those buffers)
     #[inline]
     pub fn set_log_flush_callback<F: Fn(&Self) + Send + Sync + 'static>(&mut self, callback: F) {
         self.verbose_printf_flush();
         self.log_flush_callback = Some(Arc::new(callback));
+    }
+
+    /// Drop callback from `set_log_flush_callback`
+    #[inline]
+    pub fn clear_log_flush_callback(&mut self) {
+        self.verbose_printf_flush();
+        self.log_flush_callback = None;
     }
 
     /// Set callback function to be called every time the library makes a progress.
@@ -239,6 +251,11 @@ impl Attributes {
     #[inline]
     pub fn set_progress_callback<F: Fn(f32) -> ControlFlow + Send + Sync + 'static>(&mut self, callback: F) {
         self.progress_callback = Some(Arc::new(callback));
+    }
+
+    /// Drop callback from `set_progress_callback`
+    pub fn clear_progress_callback(&mut self) {
+        self.progress_callback = None;
     }
 
     /// Move transparent color to the last entry in the palette

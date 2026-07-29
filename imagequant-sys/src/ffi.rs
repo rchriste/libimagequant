@@ -182,16 +182,24 @@ unsafe impl Sync for AnySyncSendPtr {}
 
 #[no_mangle]
 #[inline(never)]
-pub unsafe extern "C" fn liq_attr_set_progress_callback(attr: &mut liq_attr, callback: liq_progress_callback_function, user_info: AnySyncSendPtr) {
+pub unsafe extern "C" fn liq_attr_set_progress_callback(attr: &mut liq_attr, callback: Option<liq_progress_callback_function>, user_info: AnySyncSendPtr) {
     if bad_object!(attr, LIQ_ATTR_MAGIC) { return; }
+    let Some(callback) = callback else {
+        attr.inner.clear_progress_callback();
+        return;
+    };
     let cb = move |f| if callback(f, user_info) == 0 { ControlFlow::Break} else { ControlFlow::Continue};
     attr.inner.set_progress_callback(cb);
 }
 
 #[no_mangle]
 #[inline(never)]
-pub unsafe extern "C" fn liq_result_set_progress_callback(result: &mut liq_result, callback: liq_progress_callback_function, user_info: AnySyncSendPtr) {
+pub unsafe extern "C" fn liq_result_set_progress_callback(result: &mut liq_result, callback: Option<liq_progress_callback_function>, user_info: AnySyncSendPtr) {
     if bad_object!(result, LIQ_RESULT_MAGIC) { return; }
+    let Some(callback) = callback else {
+        result.inner.clear_progress_callback();
+        return;
+    };
     result.inner.set_progress_callback(move |f| if callback(f, user_info) == 0 { ControlFlow::Break} else { ControlFlow::Continue});
 }
 
@@ -206,8 +214,12 @@ unsafe fn attr_to_liq_attr_ptr(ptr: &Attributes) -> &liq_attr {
 
 #[no_mangle]
 #[inline(never)]
-pub unsafe extern "C" fn liq_set_log_callback(attr: &mut liq_attr, callback: liq_log_callback_function, user_info: AnySyncSendPtr) {
+pub unsafe extern "C" fn liq_set_log_callback(attr: &mut liq_attr, callback: Option<liq_log_callback_function>, user_info: AnySyncSendPtr) {
     if bad_object!(attr, LIQ_ATTR_MAGIC) { return; }
+    let Some(callback) = callback else {
+        attr.inner.clear_log_callback();
+        return;
+    };
     attr.inner.set_log_callback(move |attr, msg| {
         if let Ok(tmp) = CString::new(msg) {
             callback(attr_to_liq_attr_ptr(attr), tmp.as_ptr(), user_info);
@@ -217,8 +229,12 @@ pub unsafe extern "C" fn liq_set_log_callback(attr: &mut liq_attr, callback: liq
 
 #[no_mangle]
 #[inline(never)]
-pub unsafe extern "C" fn liq_set_log_flush_callback(attr: &mut liq_attr, callback: liq_log_flush_callback_function, user_info: AnySyncSendPtr) {
+pub unsafe extern "C" fn liq_set_log_flush_callback(attr: &mut liq_attr, callback: Option<liq_log_flush_callback_function>, user_info: AnySyncSendPtr) {
     if bad_object!(attr, LIQ_ATTR_MAGIC) { return; }
+    let Some(callback) = callback else {
+        attr.inner.clear_log_flush_callback();
+        return;
+    };
     attr.inner.set_log_flush_callback(move |attr| callback(attr_to_liq_attr_ptr(attr), user_info));
 }
 

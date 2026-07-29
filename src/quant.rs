@@ -224,6 +224,14 @@ impl QuantizationResult {
         self.progress_callback = Some(Box::new(callback));
     }
 
+    /// Drop callback from `set_progress_callback`
+    #[inline(always)]
+    pub fn clear_progress_callback(&mut self) {
+        self.progress_callback = None;
+    }
+
+
+
     // true == abort
     pub(crate) fn remap_progress(&self, percent: f32) -> bool {
         self.progress_callback.as_ref().map_or(false, |cb| cb(percent) == ControlFlow::Break)
